@@ -1,0 +1,1610 @@
+<Window x:Class="LoafEar.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LoafEar"
+        Icon="brand.ico"
+        Width="540"
+        Height="388"
+        MinWidth="512"
+        MinHeight="366"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#FFFFFF"
+        FontFamily="Microsoft YaHei UI, Segoe UI"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        PreviewKeyDown="OnWindowPreviewKeyDown">
+
+    <!--
+        2026-11-08 版（loafearui 设计稿）：主界面 5 个标签 播放/收藏/常规/快捷键/关于，
+        原「外观」页的设置并入「常规」页。系统标题栏保留，不加自绘品牌条；
+        设计稿底下那条「已吸附 / 老板键」状态条按这次要求去掉。
+        样式只放在本文件的 Window.Resources 里，App.xaml 一个字没动 ——
+        字幕条与右键菜单用的还是原来那套全局资源，不受这次改版影响。
+    -->
+
+    <Window.Resources>
+        <!-- 品牌图形只留给「关于」页用 -->
+        <ControlTemplate x:Key="BreadLogo" TargetType="Control">
+            <Viewbox Stretch="Uniform">
+                <Canvas Width="164" Height="78">
+                    <Canvas Canvas.Left="2" Canvas.Top="2" Width="160" Height="74">
+                        <Path Fill="#DBB660"
+                              Stroke="#595757"
+                              StrokeThickness="1.4173"
+                              Data="M160,42.97c0-23.73-35.82-42.97-80-42.97s-80,19.24-80,42.97s35.82,29.81,80,29.81S160,66.7,160,42.97z" />
+                        <Ellipse Canvas.Left="72" Canvas.Top="1.6"
+                                 Width="16" Height="50.34"
+                                 Fill="#D35836" Stroke="#595757" StrokeThickness="1.2583" />
+                        <Ellipse Canvas.Left="36.68" Canvas.Top="7.27"
+                                 Width="12.4" Height="39"
+                                 Fill="#D35836" Stroke="#595757" StrokeThickness="1.2583" />
+                        <Ellipse Canvas.Left="110.92" Canvas.Top="7.27"
+                                 Width="12.4" Height="39"
+                                 Fill="#D35836" Stroke="#595757" StrokeThickness="1.2583" />
+                    </Canvas>
+                </Canvas>
+            </Viewbox>
+        </ControlTemplate>
+
+        <!-- ================= 设计稿令牌 =================
+             ink #3E3A39 / body #595757 / mute #595757 / faint #898989
+             line #DBDEE5 / hair #DCDDDD / soft #F7F8F8 / wash #EFEFEF
+             link #627AA1 / brand #DBB660 #D35836
+             —— 界面上所有深灰只用 #595757 一个值（#727171 已并入），不再出现第二档深灰。
+        -->
+
+        <!-- ============ 文字 ============ -->
+        <Style x:Key="D10Title" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="D10Label" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="D10Value" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="D10Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="Foreground" Value="#898989" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="D10Path" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="#627AA1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <!-- ============ 卡片 ============ -->
+        <Style x:Key="D10Card" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#DBDEE5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
+        <Style x:Key="D10CueCard" TargetType="Border">
+            <Setter Property="Background" Value="#F7F8F8" />
+            <Setter Property="BorderBrush" Value="#DBDEE5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <!-- 圆角 6 → 8：跟设计稿的距离再近一档 -->
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="20,12" />
+        </Style>
+
+        <!-- ============ 标签 ============ -->
+        <Style x:Key="D10Tab" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#898989" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="40" />
+            <!-- 宽度跟着字数走，左右留同一个间距，「播放/收藏/常规/快捷键/关于」五个才算等距 -->
+            <Setter Property="Margin" Value="0,0,28,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid Background="Transparent">
+                            <!-- 设计稿那条下划线是「贴着文字宽度」的，不是固定长度 -->
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ContentPresenter HorizontalAlignment="Center" />
+                                <Border x:Name="Ind"
+                                        Height="1.4"
+                                        Margin="0,5,0,0"
+                                        Background="#3E3A39"
+                                        Opacity="0" />
+                            </StackPanel>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#595757" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="#3E3A39" />
+                                <Setter TargetName="Ind" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10SubTab" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#595757" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="Margin" Value="0,0,22,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Ind"
+                                    Height="1.4"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Bottom"
+                                    Margin="0,0,0,3"
+                                    Background="#3E3A39"
+                                    Opacity="0" />
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,0,3" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#3E3A39" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="#3E3A39" />
+                                <Setter TargetName="Ind" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============ 按钮 ============ -->
+        <Style x:Key="D10Outline" TargetType="Button">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#595757" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#DBDEE5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F7F8F8" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#898989" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Dark" TargetType="Button">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Background" Value="#3E3A39" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="11"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 「保存」那颗小深胶囊：设计稿 18.59×9.2（→ 28.4×14），角半径 2.51（→ 3.8）
+             稿子那颗没写字，实际塞「保存」两个汉字时 28.4 宽只剩 3.5px 边距，
+             字看着就贴边、像没居中 —— 这里放到 32×15、字 8.5，左右各留 4.6 -->
+        <Style x:Key="D10Pill" TargetType="Button">
+            <Setter Property="FontSize" Value="8.5" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Background" Value="#595757" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <!-- 字用 TextBlock 自己居中：ContentPresenter 里那条行盒带了上下留白，
+                                 直接放字符串会偏上一两个像素 -->
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Round" TargetType="Button">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#595757" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Disc" Fill="{TemplateBinding Background}" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Disc" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Disc" Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10RoundMini" TargetType="Button">
+            <!-- 收藏页那颗：28 → 34（筛选行从 32 放到 36，圆正好塞得下，上下不再贴边裁切） -->
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#595757" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Disc" Fill="{TemplateBinding Background}" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Disc" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Disc" Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Icon" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F7F8F8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10More" TargetType="ToggleButton">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="5">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- 设计稿这颗是四道横线（列表图标），不是三条 -->
+                                <Rectangle Width="18" Height="2" RadiusX="1" RadiusY="1" Fill="#595757" />
+                                <Rectangle Width="18" Height="2" RadiusX="1" RadiusY="1" Fill="#595757" Margin="0,2.6,0,0" />
+                                <Rectangle Width="18" Height="2" RadiusX="1" RadiusY="1" Fill="#595757" Margin="0,2.6,0,0" />
+                                <Rectangle Width="18" Height="2" RadiusX="1" RadiusY="1" Fill="#595757" Margin="0,2.6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F7F8F8" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFEFEF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 目录浮层里的一行节目（对应 loafearui-06：白底、细边、当前项浅灰底） -->
+        <Style x:Key="D10ProgItem" TargetType="Button">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="7,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFEFEF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Link" TargetType="Button">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#595757" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="2,0">
+                            <TextBlock x:Name="Txt"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Txt" Property="TextDecorations" Value="Underline" />
+                                <Setter Property="Foreground" Value="#3E3A39" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 只读键位块：长得跟键位一样，但不可点（鼠标那类改不了的快捷键用它） -->
+        <Style x:Key="D10KbdRo" TargetType="Border">
+            <Setter Property="Background" Value="#F7F8F8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="D10Kbd" TargetType="Button">            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="#595757" />
+            <Setter Property="Background" Value="#EFEFEF" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DBDEE5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============ 滑块 ============ -->
+        <Style x:Key="D10TrackFill" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Height="2.4" CornerRadius="1.2" Background="#898989" VerticalAlignment="Center" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="D10TrackRest" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Height="2" CornerRadius="1" Background="#DBDEE5" VerticalAlignment="Center" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="D10Thumb" TargetType="Thumb">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Background="Transparent">
+                            <Ellipse Width="11" Height="11" Fill="#FFFFFF" Stroke="#898989" StrokeThickness="1.2" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 进度条的拖动圆点：设计稿是一只粗一点的深色圆环，比上面那枚细圈更抓得住 -->
+        <Style x:Key="D10ThumbSeek" TargetType="Thumb">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Background="Transparent">
+                            <Ellipse Width="12.5" Height="12.5" Fill="#FFFFFF" Stroke="#595757" StrokeThickness="2.4" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="D10Slider" TargetType="Slider">
+            <Setter Property="IsSnapToTickEnabled" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="16" Background="Transparent">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource D10TrackRest}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource D10TrackRest}" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource D10Thumb}" />
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="D10Seek" TargetType="Slider">
+            <Setter Property="IsSnapToTickEnabled" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="16" Background="Transparent">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource D10TrackFill}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource D10TrackRest}" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource D10ThumbSeek}" />
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============ 输入 ============ -->
+        <Style x:Key="D10Num" TargetType="TextBox">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="CaretBrush" Value="#3E3A39" />
+            <Setter Property="SelectionBrush" Value="#DBDEE5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#DBDEE5"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="5,0" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3E3A39" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10CueMain" TargetType="TextBox">
+            <Setter Property="FontSize" Value="21" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Hidden" />
+            <Setter Property="AcceptsReturn" Value="False" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="CaretBrush" Value="#3E3A39" />
+            <Setter Property="SelectionBrush" Value="#DBDEE5" />
+        </Style>
+        <Style x:Key="D10CueSub" TargetType="TextBox">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="#595757" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="AcceptsReturn" Value="False" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="CaretBrush" Value="#3E3A39" />
+            <Setter Property="SelectionBrush" Value="#DBDEE5" />
+        </Style>
+
+        <!-- ============ 下拉（无边框，只留一行可点的文字） ============ -->
+        <Style x:Key="D10ComboItem" TargetType="ComboBoxItem">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="8,5">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F7F8F8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            倍速下拉专用：选项在框里**水平居中**。
+            播放页那颗倍速是「只有一行字」的按钮，展开后框比字宽不少，
+            若是选项左对齐，字就贴在框左边，跟上面那行字对不齐。
+            其它下拉（主题等）框宽本来就贴着控件，保持左对齐。
+        -->
+        <Style x:Key="D10SpeedItem" TargetType="ComboBoxItem"
+               BasedOn="{StaticResource D10ComboItem}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="8,5">
+                            <!--
+                                居中居的是**排版宽**，而「1.0X」的字形墨迹左边留 1.45、右边只留 0.21，
+                                所以墨迹中心天生比排版中心右偏 0.62 DIP。按 -0.8/+0.8 的边距把这半个
+                                留白还回去，框里的字才跟上面那行字落在同一条中线上
+                                （125% 缩放下正好是 1 个物理像素）。
+                            -->
+                            <ContentPresenter VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              Margin="-0.8,0,0.8,0" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F7F8F8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Combo" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource D10ComboItem}" />
+            <Setter Property="MaxDropDownHeight" Value="260" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid Background="Transparent">
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="0"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"
+                                              TextBlock.FontSize="{TemplateBinding FontSize}" />
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   VerticalOffset="3"
+                                   PopupAnimation="Fade">
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="#DBDEE5"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Padding="3"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            带框的下拉：常规页「主题 → 跟随系统」按设计稿要有明显的选项框和下滑箭头，
+            而播放页那个 1.0× 是纯文字，所以另开一个样式，没去动 D10Combo。
+        -->
+        <Style x:Key="D10ComboBoxed" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource D10ComboItem}" />
+            <Setter Property="MaxDropDownHeight" Value="260" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Bd"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#DBDEE5"
+                                    BorderThickness="1"
+                                    CornerRadius="4" />
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="8,0,20,0"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"
+                                              TextBlock.FontSize="{TemplateBinding FontSize}" />
+                            <Path Data="M 0,0 L 3.6,3.6 L 7.2,0"
+                                  Stroke="#898989"
+                                  StrokeThickness="1.1"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,7,0" />
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   VerticalOffset="3"
+                                   PopupAnimation="Fade">
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="#DBDEE5"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Padding="3"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#898989" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============ 开关 / 勾选 ============ -->        <Style x:Key="D10Switch" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent" VerticalAlignment="Center">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              TextBlock.FontSize="10.5"
+                                              TextBlock.Foreground="#3E3A39" />
+                            <Grid Width="28" Height="14" Margin="7,0,0,0" VerticalAlignment="Center">
+                                <Border x:Name="Track" CornerRadius="7" Background="#DBDEE5" />
+                                <Ellipse x:Name="Knob"
+                                         Width="10" Height="10"
+                                         Fill="#FFFFFF"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Center"
+                                         Margin="2,0,0,0" />
+                            </Grid>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="#595757" />
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="Knob" Property="Margin" Value="0,0,2,0" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="D10Check" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="#3E3A39" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="Box"
+                                    Width="12" Height="12"
+                                    CornerRadius="3"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#898989"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <Path x:Name="Tick"
+                                      Data="M2,5 L4.6,7.6 L9,2.9"
+                                      Stroke="#FFFFFF"
+                                      StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#595757" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#595757" />
+                                <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#FFFFFF">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ========== 标签行（5 个，短下划线选中态，下面一条通栏细线） ========== -->
+            <Grid Grid.Row="0">
+                <!--
+                    通栏细线要跟选中标签那条短黑线落在同一行（客户区 y=31~32）：
+                    黑线本身占 30.3~31.7，所以灰线压在它下沿。
+                    这层必须写在标签**前面**——标签里的黑线要盖在灰线上面，
+                    不然灰线会把黑线切出一道缺口（参考图里正是黑线完整、灰线从两侧接上）。
+                -->
+                <Border Height="1" Background="#DCDDDD"
+                        VerticalAlignment="Bottom" Margin="0,0,0,8" />
+                <StackPanel Orientation="Horizontal" Margin="28,0,0,0" VerticalAlignment="Center">
+                    <RadioButton x:Name="NavPlay" Style="{StaticResource D10Tab}"
+                                 IsChecked="True" Click="OnNavClick" Content="播放" />
+                    <RadioButton x:Name="NavFavorites" Style="{StaticResource D10Tab}"
+                                 Click="OnNavClick" Content="收藏" />
+                    <RadioButton x:Name="NavGeneral" Style="{StaticResource D10Tab}"
+                                 Click="OnNavClick" Content="常规" />
+                    <RadioButton x:Name="NavHotkey" Style="{StaticResource D10Tab}"
+                                 Click="OnNavClick" Content="快捷键" />
+                    <RadioButton x:Name="NavAbout" Style="{StaticResource D10Tab}"
+                                 Click="OnNavClick" Content="关于" />
+                    <!-- 设计稿没有「外观」标签，设置已并入常规页；保留命名控件避免牵动旧代码 -->
+                    <RadioButton x:Name="NavLook" Visibility="Collapsed" Content="外观" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ========== 内容区 ========== -->
+            <Grid Grid.Row="1">
+
+                <!-- ===== 播放 ===== -->
+                <!--
+                    设计稿（loafearui 画板 1）按 350×235 等比映射到 534 宽客户区（×1.5257）：
+                    标题 42 / 卡片自适应 / 控制行 34 / 进度 20 / 时间 20 / 按钮 58。
+                    左下角四道横线是「目录」入口（点开是节目清单，对应 loafearui-06）；
+                    原来收在汉堡浮层里的「上句 / 下句、字幕条预览、已吸附状态、老板键提示」
+                    按这次要求整块去掉，偏移 ±ms 挪回这一行跟「保存」并排。
+                -->
+                <Grid x:Name="PagePlay" Margin="28,0,28,12">
+                    <Grid.RowDefinitions>
+                        <!-- 标题行从 42 收到 36：字幕卡片整体上提 6px，靠节目名更近 -->
+                        <RowDefinition Height="36" />
+                        <RowDefinition Height="*" MinHeight="104" />
+                        <RowDefinition Height="34" />
+                        <RowDefinition Height="18" />
+                        <RowDefinition Height="17" />
+                        <RowDefinition Height="58" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 节目名。AudioBox 只当节目清单的模型用（不显示），视觉上只有这行灰标题。 -->
+                    <Grid Grid.Row="0">
+                        <ListBox x:Name="AudioBox"
+                                 Visibility="Collapsed"
+                                 SelectionChanged="OnAudioPicked" />
+                        <TextBlock x:Name="AudioTitleText"
+                                   Text="未选择节目"
+                                   FontSize="17"
+                                   Foreground="#595757"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   Margin="4,0,0,0"
+                                   MaxWidth="436"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="从左下角「目录」挑一个节目" />
+                    </Grid>
+
+                    <!-- 当前句：浅灰大卡片，主句 + 译文都能就地改 -->
+                    <Border Grid.Row="1" Style="{StaticResource D10CueCard}">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBox x:Name="PreviewMain" Style="{StaticResource D10CueMain}" Text="—" />
+                            <TextBox x:Name="PreviewSub"
+                                     Style="{StaticResource D10CueSub}"
+                                     Text=""
+                                     Margin="0,10,0,0"
+                                     ToolTip="改完点「保存」写回字幕文件" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 保存 · 偏移 · 句数 · 收藏 · 单句循环 -->
+                    <Grid Grid.Row="2" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Button x:Name="SaveCueButton"
+                                    Content="保存"
+                                    Style="{StaticResource D10Pill}"
+                                    Click="OnSaveCue"
+                                    ToolTip="把改过的台词写回原字幕文件" />
+                            <TextBlock Text="偏移"
+                                       FontSize="10"
+                                       Foreground="#595757"
+                                       Margin="22,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <TextBox x:Name="OffsetBox"
+                                     Style="{StaticResource D10Num}"
+                                     Width="44"
+                                     Margin="8,0,0,0"
+                                     LostFocus="OnNumberCommit"
+                                     KeyDown="OnNumberKeyDown"
+                                     ToolTip="Ctrl+Alt+[ 提前 100ms · Ctrl+Alt+] 推后 100ms"
+                                     ToolTipService.InitialShowDelay="300"
+                                     ToolTipService.ShowDuration="20000" />
+                            <TextBlock Text="ms" Style="{StaticResource D10Hint}" Margin="5,0,0,0" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="CueIndexText"
+                                   Text="—"
+                                   FontSize="10"
+                                   Foreground="#898989"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="FavStarButton"
+                                    Style="{StaticResource D10Icon}"
+                                    Width="26" Height="26"
+                                    Click="OnToggleFavorite"
+                                    ToolTip="收藏本句（Ctrl+Alt+S）" />
+                            <Button x:Name="LoopButton"
+                                    Style="{StaticResource D10Icon}"
+                                    Width="26" Height="26"
+                                    Margin="8,0,0,0"
+                                    Click="OnToggleLoop"
+                                    ToolTip="单句循环" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 进度 -->
+                    <Slider x:Name="PositionSlider"
+                            Grid.Row="3"
+                            Style="{StaticResource D10Seek}"
+                            Minimum="0" Maximum="1"
+                            ValueChanged="OnSeekChanged" />
+
+                    <Grid Grid.Row="4" Margin="0,-3,0,0">
+                        <TextBlock x:Name="TimeLabel"
+                                   Text="00:00"
+                                   FontSize="9.5"
+                                   Foreground="#898989"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="DurationLabel"
+                                   Text="00:00"
+                                   FontSize="9.5"
+                                   Foreground="#898989"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- 控制行：目录 / 上一句 / 大圆播放 / 下一句 / 倍速。
+                         左边留 12 的边距 = 整排往左 2px（居中时左边距给多少就右移一半）；
+                         间距按「看到的空白」对齐：目录那颗四道横线窄，左侧补到 32，
+                         倍速文字贴着框左边、没有图标留白，右侧要 39 才和左边一样宽。 -->
+                    <StackPanel Grid.Row="5" Orientation="Horizontal"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Margin="12,0,0,0">
+                        <ToggleButton x:Name="DirButton"
+                                      Style="{StaticResource D10More}"
+                                      Click="OnDirToggle"
+                                      ToolTip="目录：挑一个节目" />
+
+                        <!-- 节目清单（loafearui-06）：白底细边、当前项浅灰底，点一行就换节目 -->
+                        <!-- 节目清单：默认右对齐到四道横线那颗按钮（浮层比按钮宽，所以往左铺开），
+                             位置由 PlaceProgramPopup 现算，屏幕下不去了才改成往下弹 -->
+                        <Popup x:Name="ProgramPopup"
+                               Placement="Custom"
+                               PlacementTarget="{Binding ElementName=DirButton}"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               PopupAnimation="Fade"
+                               Closed="OnProgramClosed">
+                            <Border Background="#FFFFFF"
+                                    BorderBrush="#C9CACA"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="4">
+                                <!-- 176 → 84：整块浮层宽度砍掉一半（含边框约 94） -->
+                                <StackPanel Width="84">
+                                    <ScrollViewer MaxHeight="248"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel x:Name="ProgramList" />
+                                    </ScrollViewer>
+                                    <Border BorderBrush="#DCDDDD" BorderThickness="0,1,0,0" Margin="4,4,4,0" />
+                                    <Button Content="其他文件…"
+                                            Style="{StaticResource D10ProgItem}"
+                                            Foreground="#898989"
+                                            Click="OnPickAudio" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+
+                        <Button x:Name="PrevButton" Style="{StaticResource D10Icon}"
+                                Margin="32,0,0,0"
+                                Click="OnPrevCue" ToolTip="上一句" />
+                        <Button x:Name="PlayButton" Style="{StaticResource D10Round}"
+                                Margin="26,0" Click="OnTogglePlay" ToolTip="播放 / 暂停" />
+                        <Button x:Name="NextButton" Style="{StaticResource D10Icon}"
+                                Click="OnNextCue" ToolTip="下一句" />
+
+                        <ComboBox x:Name="SpeedBox"
+                                  Style="{StaticResource D10Combo}"
+                                  ItemContainerStyle="{StaticResource D10SpeedItem}"
+                                  FontSize="14"
+                                  Width="52"
+                                  Margin="39,0,0,0"
+                                  SelectionChanged="OnSpeedChanged"
+                                  ToolTip="播放速度">
+                            <ComboBoxItem Content="1.0X" />
+                            <ComboBoxItem Content="0.8X" />
+                            <ComboBoxItem Content="0.6X" />
+                            <ComboBoxItem Content="0.4X" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ===== 收藏 ===== -->
+                <Grid x:Name="PageFavorites" Margin="28,2,28,2" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="26" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <RadioButton x:Name="FavFilterRecent" Style="{StaticResource D10SubTab}"
+                                         Tag="Recent" Click="OnFavFilterClick" Content="最近" />
+                            <RadioButton x:Name="FavFilterEpisode" Style="{StaticResource D10SubTab}"
+                                         Tag="Episode" Click="OnFavFilterClick" Content="本节目" />
+                            <RadioButton x:Name="FavFilterAll" Style="{StaticResource D10SubTab}"
+                                         Tag="All" Click="OnFavFilterClick" Content="全部" />
+                        </StackPanel>
+                        <!-- 图标在 RefreshPlayIcons 里给：连播没跑是白三角，跑起来变暂停，
+                             再点一下就是暂停 / 继续 -->
+                        <Button x:Name="FavPlayAllButton"
+                                Style="{StaticResource D10RoundMini}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="OnPlayAllFavorites"
+                                ToolTip="全部播放：按当前筛选一句接一句放" />
+                    </Grid>
+
+                    <!-- 列表上方不留分割线（第一条字幕直接顶到筛选行下面） -->
+                    <Border Grid.Row="1" BorderBrush="#DCDDDD" BorderThickness="0,0,0,1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="FavList" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <TextBlock x:Name="FavEmptyText"
+                               Grid.Row="1"
+                               Margin="0,12,0,0"
+                               Text="还没有收藏。播放时按 Ctrl+Alt+S，或在字幕条上右键「收藏本句」。"
+                               FontSize="10.5"
+                               Foreground="#898989"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Top"
+                               Visibility="Collapsed" />
+
+                    <Grid Grid.Row="2">
+                        <TextBlock x:Name="FavCountText"
+                                   Text="共 0 句"
+                                   FontSize="10"
+                                   Foreground="#595757"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="单击整行循环这一句 · 点击星标取消收藏"
+                                   FontSize="9.5"
+                                   Foreground="#898989"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="FavExportButton"
+                                Content="导出 .txt"
+                                Style="{StaticResource D10Link}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="OnExportFavorites" />
+                    </Grid>
+                </Grid>
+
+                <!-- ===== 常规（设计稿把原「外观」页的设置并到这里） ===== -->
+                <ScrollViewer x:Name="PageGeneral"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Collapsed">
+                    <StackPanel Margin="28,4,28,6">
+
+                        <!-- 卡片 1：听力目录
+                             「听力目录」「目录」「识别信息」一律靠左；两颗按钮靠右；
+                             按钮外框 28 → 26（内边距 16 → 13），比上一版收一档；
+                             标题行整体下移 3，外框上下的留白各收 3（9/6 → 6/4），
+                             所以框本身矮了一点、框里的字并没有跟着上移 -->
+                        <Border x:Name="LibraryCard" Style="{StaticResource D10Card}"
+                                Margin="0,3,0,0" Padding="10,6,10,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock x:Name="LibraryTitle"
+                                           Grid.Row="0" Grid.Column="0" Text="听力目录"
+                                           Style="{StaticResource D10Title}"
+                                           FontSize="14"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Center"
+                                           Margin="0,3,12,0" />
+
+                                <StackPanel Grid.Row="0" Grid.Column="1"
+                                            Orientation="Horizontal" VerticalAlignment="Center"
+                                            Margin="0,3,0,0"
+                                            HorizontalAlignment="Right">
+                                    <Button x:Name="RescanButton" Content="刷新"
+                                            Style="{StaticResource D10Outline}"
+                                            FontSize="11" Height="26" Padding="13,0"
+                                            Click="OnRescanLibrary"
+                                            ToolTip="重新扫描这个目录，找新增 / 删掉的节目" />
+                                    <Button x:Name="ChangeDirButton" Content="更改"
+                                            Style="{StaticResource D10Outline}"
+                                            FontSize="11" Height="26" Padding="13,0" Margin="8,0,0,0"
+                                            Click="OnPickLibrary"
+                                            ToolTip="换一个听力目录（换完会自动重新扫描）" />
+                                </StackPanel>
+
+                                <TextBlock x:Name="LibraryPathText"
+                                           Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                           Text="未设置"
+                                           Style="{StaticResource D10Path}"
+                                           HorizontalAlignment="Left"
+                                           TextAlignment="Left"
+                                           Margin="0,6,0,0"
+                                           ToolTipService.ShowDuration="30000" />
+                                <TextBlock x:Name="ItemCountText"
+                                           Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                           Text="设定目录后这里会显示识别到的节目数。"
+                                           Style="{StaticResource D10Hint}"
+                                           HorizontalAlignment="Left"
+                                           TextAlignment="Left"
+                                           Margin="0,3,0,0"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 卡片 2：主题 + 开关 -->
+                        <Border Style="{StaticResource D10Card}" Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="26" />
+                                    <RowDefinition Height="26" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock Text="主题" Style="{StaticResource D10Label}" />
+                                    <ComboBox x:Name="ThemeBox"
+                                              Style="{StaticResource D10ComboBoxed}"
+                                              Width="74"
+                                              Margin="8,0,0,0"
+                                              SelectionChanged="OnThemeChanged">
+                                        <ComboBoxItem Content="跟随系统" />
+                                        <ComboBoxItem Content="浅色" />
+                                        <ComboBoxItem Content="深色" />
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <CheckBox x:Name="ClickThroughCheck" Grid.Row="0" Grid.Column="1"
+                                          Style="{StaticResource D10Switch}" Content="鼠标穿透"
+                                          Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                          ToolTip="字幕条不接鼠标：点击直接落到下面的窗口上（此时只能从主界面暂停 / 继续）" />
+                                <CheckBox x:Name="CaptureHideCheck" Grid.Row="0" Grid.Column="2"
+                                          Style="{StaticResource D10Switch}" Content="截图隐身"
+                                          Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                          ToolTip="截图 / 录屏时字幕条不出现在画面里" />
+                                <CheckBox x:Name="BgTransparentCheck" Grid.Row="0" Grid.Column="3"
+                                          Style="{StaticResource D10Switch}" Content="透明背景"
+                                          Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                          ToolTip="不画底色，只留文字（压在浅色背景上会看不清）" />
+
+                                <CheckBox x:Name="ScreenBusyCheck" Grid.Row="1" Grid.Column="1"
+                                          Style="{StaticResource D10Switch}" Content="投屏隐藏"
+                                          Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                          ToolTip="投屏、全屏演示或全屏游戏时自动把字幕条收起来" />
+                                <CheckBox x:Name="TrayCheck" Grid.Row="1" Grid.Column="2"
+                                          Style="{StaticResource D10Switch}" Content="关闭到托盘"
+                                          Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                          ToolTip="关掉主界面时缩到托盘继续跑，字幕条不受影响" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 卡片 3：字幕条外观 -->
+                        <Border Style="{StaticResource D10Card}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <Grid Height="24">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="62" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="16" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="字幕宽度" Style="{StaticResource D10Label}" />
+                                    <Slider x:Name="WidthSlider"
+                                            Grid.Column="1"
+                                            Minimum="220" Maximum="1200" TickFrequency="10"
+                                            Style="{StaticResource D10Slider}"
+                                            ValueChanged="OnWidthChanged" />
+                                    <TextBlock x:Name="WidthValueText"
+                                               Grid.Column="2" Text="420"
+                                               Style="{StaticResource D10Value}"
+                                               TextAlignment="Right" Width="30"
+                                               Margin="8,0,0,0" />
+                                    <TextBlock Grid.Column="3" Text="px" Style="{StaticResource D10Hint}"
+                                               HorizontalAlignment="Right" />
+                                </Grid>
+
+                                <!-- 设计稿这两条是滑条：左「鼠标移开」，右「鼠标悬停」 -->
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="62" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="54" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="54" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="鼠标移开" Style="{StaticResource D10Label}" />
+                                    <Slider x:Name="IdleOpacitySlider"
+                                            Grid.Column="1"
+                                            Minimum="5" Maximum="100" TickFrequency="1"
+                                            Style="{StaticResource D10Slider}"
+                                            ValueChanged="OnIdleOpacityChanged" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock x:Name="IdleOpacityValueText" Text="72"
+                                                   Style="{StaticResource D10Value}" TextAlignment="Right" />
+                                        <TextBlock Text="%" Style="{StaticResource D10Hint}" Margin="3,0,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="3" Text="鼠标悬停" Style="{StaticResource D10Label}"
+                                               Margin="12,0,0,0" />
+                                    <Slider x:Name="HoverOpacitySlider"
+                                            Grid.Column="4"
+                                            Minimum="5" Maximum="100" TickFrequency="1"
+                                            Style="{StaticResource D10Slider}"
+                                            ValueChanged="OnHoverOpacityChanged" />
+                                    <StackPanel Grid.Column="5" Orientation="Horizontal"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HoverOpacityValueText" Text="100"
+                                                   Style="{StaticResource D10Value}" TextAlignment="Right" />
+                                        <TextBlock Text="%" Style="{StaticResource D10Hint}" Margin="3,0,0,0" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 字号那一行：标签和输入框贴着排，中间不再留一整个 62 宽的标签列；
+                                     右半边挂「译文 / 时间」两个勾选，靠右对齐 -->
+                                <Grid Height="24">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="主字号" Style="{StaticResource D10Label}" />
+                                        <TextBox x:Name="MainFontBox" Style="{StaticResource D10Num}"
+                                                 Width="40" Margin="7,0,0,0"
+                                                 LostFocus="OnNumberCommit" KeyDown="OnNumberKeyDown" />
+                                        <TextBlock Text="px" Style="{StaticResource D10Hint}" Margin="4,0,0,0" />
+                                        <TextBlock Text="副字号" Style="{StaticResource D10Label}" Margin="26,0,0,0" />
+                                        <TextBox x:Name="SubFontBox" Style="{StaticResource D10Num}"
+                                                 Width="40" Margin="7,0,0,0"
+                                                 LostFocus="OnNumberCommit" KeyDown="OnNumberKeyDown" />
+                                        <TextBlock Text="px" Style="{StaticResource D10Hint}" Margin="4,0,0,0" />
+                                    </StackPanel>
+
+                                    <!-- 这两项管的是字幕条上显示什么：不再贴卡片右边缘，往左收一截 -->
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Margin="0,0,44,0">
+                                        <CheckBox x:Name="TranslationCheck"
+                                                  Style="{StaticResource D10Check}" Content="译文"
+                                                  Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                                  ToolTip="字幕条上多显示一行译文" />
+                                        <CheckBox x:Name="ShowTimeCheck"
+                                                  Style="{StaticResource D10Check}" Content="时间"
+                                                  Margin="22,0,0,0"
+                                                  Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                                  ToolTip="字幕条右侧显示播放时间" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 吸附两颗按钮：靠左在前、靠右在后（跟任务栏上「先左后右」的顺序一致），
+                             「悬浮字幕」这颗开关就挂在靠右那颗右边 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="靠左吸附任务栏"
+                                    Style="{StaticResource D10Outline}"
+                                    Click="OnDockLeft"
+                                    ToolTip="字幕条贴到任务栏最左端，然后重新吸附" />
+                            <Button Content="靠右吸附任务栏"
+                                    Style="{StaticResource D10Outline}"
+                                    Margin="8,0,0,0"
+                                    Click="OnDockRight"
+                                    ToolTip="字幕条贴到系统托盘左侧，然后重新吸附" />
+                            <CheckBox x:Name="FloatCheck"
+                                      Style="{StaticResource D10Switch}" Content="悬浮字幕"
+                                      Margin="16,0,0,0" VerticalAlignment="Center"
+                                      Checked="OnOptionChanged" Unchecked="OnOptionChanged"
+                                      ToolTip="脱离任务栏，浮在屏幕任意位置；按住字幕拖动，悬停时上方出现锁图标，点锁固定位置" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 设计稿把「外观」并进常规页；保留这个空壳命名控件避免牵动旧代码 -->
+                <ScrollViewer x:Name="PageLook" Visibility="Collapsed"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled" />
+
+                <!-- ===== 快捷键 ===== -->
+                <ScrollViewer x:Name="PageHotkey"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Collapsed">
+                    <StackPanel Margin="28,8,28,6">
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Padding="0,0,0,0" Height="34">
+                            <Grid>
+                                <TextBlock Text="老板键（隐藏并暂停）" Style="{StaticResource D10Label}" />
+                                <Button x:Name="HotkeyToggleButton" Style="{StaticResource D10Kbd}"
+                                        HorizontalAlignment="Right" MinWidth="132"
+                                        Click="OnRecordHotkey" Tag="Toggle" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="播放或暂停" Style="{StaticResource D10Label}" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <!-- 鼠标这条不用录：写死的说明块，点它没反应 -->
+                                    <Border Style="{StaticResource D10KbdRo}"
+                                            ToolTip="鼠标左键单击/双击任务栏上的字幕条 = 播放或暂停">
+                                        <TextBlock Text="左键点字幕条" FontSize="9.5" Foreground="#898989"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <Button x:Name="HotkeyPlayButton" Style="{StaticResource D10Kbd}"
+                                            MinWidth="132" Margin="8,0,0,0"
+                                            Click="OnRecordHotkey" Tag="Play" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="上一句" Style="{StaticResource D10Label}" />
+                                <Button x:Name="HotkeyPrevButton" Style="{StaticResource D10Kbd}"
+                                        HorizontalAlignment="Right" MinWidth="132"
+                                        Click="OnRecordHotkey" Tag="Prev" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="下一句" Style="{StaticResource D10Label}" />
+                                <Button x:Name="HotkeyNextButton" Style="{StaticResource D10Kbd}"
+                                        HorizontalAlignment="Right" MinWidth="132"
+                                        Click="OnRecordHotkey" Tag="Next" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="单句循环" Style="{StaticResource D10Label}" />
+                                <Button x:Name="HotkeyLoopButton" Style="{StaticResource D10Kbd}"
+                                        HorizontalAlignment="Right" MinWidth="132"
+                                        Click="OnRecordHotkey" Tag="Loop" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="收藏本句" Style="{StaticResource D10Label}" />
+                                <Button x:Name="HotkeyCollectButton" Style="{StaticResource D10Kbd}"
+                                        HorizontalAlignment="Right" MinWidth="132"
+                                        Click="OnRecordHotkey" Tag="Collect" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,0,0,1" Height="34">
+                            <Grid>
+                                <TextBlock Text="偏移 ±100ms" Style="{StaticResource D10Label}" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="HotkeyOffsetDownButton" Style="{StaticResource D10Kbd}"
+                                            MinWidth="74" Click="OnRecordHotkey" Tag="OffsetDown" />
+                                    <TextBlock Text="/" FontSize="10.5" Foreground="#898989"
+                                               Margin="5,0" VerticalAlignment="Center" />
+                                    <Button x:Name="HotkeyOffsetUpButton" Style="{StaticResource D10Kbd}"
+                                            MinWidth="74" Click="OnRecordHotkey" Tag="OffsetUp" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock x:Name="HotkeyHintText"
+                                   Text="点一下键位块，再按下新组合；Esc 取消。至少要带 Ctrl / Alt / Shift / Win 中的一个。播放或暂停除了键位，也可以直接点任务栏上的字幕条。"
+                                   Style="{StaticResource D10Hint}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== 关于 ===== -->
+                <ScrollViewer x:Name="PageAbout"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Collapsed">
+                    <StackPanel Margin="28,8,28,6">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <Control Template="{StaticResource BreadLogo}" Width="50" Height="32" />
+                                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="LoafEar"
+                                               FontSize="17"
+                                               Foreground="#3E3A39" />
+                                    <TextBlock x:Name="VersionText"
+                                               Text="版本 2.0.0"
+                                               FontSize="10"
+                                               Foreground="#9FA0A0"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Content="检查更新"
+                                    Style="{StaticResource D10Outline}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Click="OnCheckUpdate" />
+                        </Grid>
+
+                        <TextBlock Text="把本地音频的字幕嵌进 Windows 任务栏，安静地练听力。字幕条是任务栏的真子窗口，不是悬浮窗；不联网、不上传、只读本地文件。"
+                                   FontSize="10.5"
+                                   Foreground="#595757"
+                                   TextWrapping="Wrap"
+                                   LineHeight="18"
+                                   Margin="0,14,0,0" />
+
+                        <Border BorderBrush="#DCDDDD" BorderThickness="0,1,0,0" Margin="0,14,0,0">
+                            <StackPanel>
+                                <Grid Margin="0,9,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="66" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="配置文件" Style="{StaticResource D10Hint}" />
+                                    <TextBlock x:Name="ConfigPathText" Grid.Column="1"
+                                               FontSize="10.5" Foreground="#3E3A39"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               ToolTipService.ShowDuration="30000" />
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="66" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="字幕格式" Style="{StaticResource D10Hint}" />
+                                    <TextBlock Grid.Column="1" Text="SRT / ASS / VTT / LRC"
+                                               FontSize="10.5" Foreground="#3E3A39"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="66" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="开源协议" Style="{StaticResource D10Hint}" />
+                                    <TextBlock Grid.Column="1" Text="SIL OFL"
+                                               FontSize="10.5" Foreground="#3E3A39"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="打开配置目录"
+                                Style="{StaticResource D10Outline}"
+                                HorizontalAlignment="Left"
+                                Margin="0,14,0,0"
+                                Click="OnOpenConfigDir" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!--
+                设计稿没有状态条。改成一句「飘一下就散」的轻提示（不占布局高度）：
+                保存、收藏、偏移、快捷键冲突这些反馈还得看得见，但不许在界面上钉一条常驻灰字。
+            -->
+            <Border x:Name="ToastBd"
+                    Grid.Row="1"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="28,0,0,8"
+                    Padding="8,3"
+                    CornerRadius="4"
+                    Background="#F2FFFFFF"
+                    Opacity="0"
+                    IsHitTestVisible="False">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse x:Name="StatusDot" Width="4" Height="4"
+                             Fill="#898989" VerticalAlignment="Center" />
+                    <TextBlock x:Name="StatusText"
+                               Text=""
+                               Margin="6,0,0,0"
+                               MaxWidth="330"
+                               TextWrapping="Wrap"
+                               FontSize="9.5"
+                               Foreground="#595757"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

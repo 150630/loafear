@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- 托盘图标用到 NotifyIcon -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>brand.ico</ApplicationIcon>
+    <AssemblyName>LoafEar</AssemblyName>
+    <RootNamespace>LoafEar</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Version>2.0.0</Version>
+    <Product>LoafEar</Product>
+    <AssemblyTitle>LoafEar</AssemblyTitle>
+    <Company>LoafEar</Company>
+    <Description>钉在任务栏上的字幕条，用来摸鱼听英语</Description>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+    <!--
+      WFO0003：WinForms 建议用 Application.SetHighDpiMode 配置 DPI。
+      但本程序是 WPF 主体，靠 app.manifest 的 PerMonitorV2 才能拿到 1.25 缩放下的
+      正确物理像素（任务栏定位依赖它）。WinForms 只在托盘图标这一处用到，
+      统一由 manifest 管理反而更稳，因此保留 manifest 并抑制该提示。
+    -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <!-- WinForms 的隐式 using 会跟 WPF 的 Brush/Point/Application 撞名，这里显式移除 -->
+  <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <!-- 变速不变调：SoundTouch 的 .NET 移植，纯托管实现 -->
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
+  </ItemGroup>
+
+  <!-- 图标同时作为 exe 图标和 WPF 资源：托盘与窗口都从这份 ico 取图 -->
+  <ItemGroup>
+    <Resource Include="brand.ico" />
+  </ItemGroup>
+
+</Project>

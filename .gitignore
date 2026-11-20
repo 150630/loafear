@@ -1,0 +1,29 @@
+# 构建产物 / 运行时生成
+bin/
+obj/
+publish/
+*.pdb
+*.dll
+*.exe
+!brand.ico
+
+# 配置与用户数据（含本机路径、收藏记录，绝不能进仓库）
+config.json
+favorites.json
+error.log
+hang.log
+
+# 发布归档（exe、逐版截图、改动说明都是本地产物）
+releases/
+
+# 编辑器 / 系统
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
+
+# 品牌设计过程的中间预览图（只需保留 brand.ico 与 Brand/ 源码）
+brand-preview-*.png
+brand-sizes-*.png
