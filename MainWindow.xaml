@@ -1512,7 +1512,7 @@
                                                FontSize="17"
                                                Foreground="#3E3A39" />
                                     <TextBlock x:Name="VersionText"
-                                               Text="版本 2.0.0"
+                                               Text="v0.1"
                                                FontSize="10"
                                                Foreground="#9FA0A0"
                                                Margin="0,2,0,0" />
@@ -1569,11 +1569,19 @@
                             </StackPanel>
                         </Border>
 
-                        <Button Content="打开配置目录"
-                                Style="{StaticResource D10Outline}"
-                                HorizontalAlignment="Left"
-                                Margin="0,14,0,0"
-                                Click="OnOpenConfigDir" />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="打开配置目录"
+                                    Style="{StaticResource D10Outline}"
+                                    Click="OnOpenConfigDir" />
+                            <Button Content="GitHub 项目页"
+                                    Style="{StaticResource D10Outline}"
+                                    Margin="8,0,0,0"
+                                    Click="OnOpenGitHub" />
+                            <Button Content="问题反馈"
+                                    Style="{StaticResource D10Outline}"
+                                    Margin="8,0,0,0"
+                                    Click="OnOpenIssues" />
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

@@ -13,7 +13,7 @@
     <AssemblyName>LoafEar</AssemblyName>
     <RootNamespace>LoafEar</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version>2.0.0</Version>
+    <Version>0.1.0</Version>
     <Product>LoafEar</Product>
     <AssemblyTitle>LoafEar</AssemblyTitle>
     <Company>LoafEar</Company>

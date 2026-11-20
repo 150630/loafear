@@ -37,6 +37,13 @@ public partial class MainWindow : Window
     /// <summary>偏移能调到多少（和播放页那个输入框同一个范围）。</summary>
     private const int OffsetLimitMs = 5000;
 
+    /// <summary>关于页显示的版本号，跟 GitHub Release 的 tag 保持一致。</summary>
+    private const string AppVersion = "v0.1";
+
+    /// <summary>开源项目主页与反馈入口。</summary>
+    private const string ProjectUrl = "https://github.com/150630/loafear";
+    private const string IssuesUrl = "https://github.com/150630/loafear/issues";
+
     private static readonly Color Ink = Color.FromRgb(0x3E, 0x3A, 0x39);
 
     /// <summary>墨：只用在「选中 / 已播放 / 循环开着」这几处，面积都很小。</summary>
@@ -216,7 +223,7 @@ public partial class MainWindow : Window
         // 设计稿里的标签是纯文字 + 下划线，用 RadioButton 模拟，页面靠切换 Visibility 显示
         SelectPage(0);
         RefreshFavorites();
-        VersionText.Text = $"版本 {typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "2.0.0"}";
+        VersionText.Text = AppVersion;
         ConfigPathText.Text = AppConfig.ConfigPath;
 
         _player.Speed = _config.Speed;
@@ -1979,9 +1986,8 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnCheckUpdate(object sender, RoutedEventArgs e)
     {
-        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
         MessageBox.Show(
-            $"当前版本 {version}\n\nLoafEar 不联网、不上传，没有在线更新通道。\n换新版本时直接替换 exe，config.json 和 favorites.json 留在原目录就会继续生效。",
+            $"当前版本 {AppVersion}\n\nLoafEar 不联网、不上传，没有在线更新通道。\n换新版本时直接替换 exe，config.json 和 favorites.json 留在原目录就会继续生效。",
             "LoafEar",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -1999,6 +2005,23 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus($"打不开配置目录：{ex.Message}", false);
+        }
+    }
+
+    private void OnOpenGitHub(object sender, RoutedEventArgs e) => OpenUrl(ProjectUrl);
+
+    private void OnOpenIssues(object sender, RoutedEventArgs e) => OpenUrl(IssuesUrl);
+
+    /// <summary>用系统默认浏览器打开链接；打不开就给一句轻提示。</summary>
+    private void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"打不开链接：{ex.Message}", false);
         }
     }
 
